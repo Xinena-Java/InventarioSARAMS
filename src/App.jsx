@@ -3,18 +3,38 @@ import Layout from './components/Layout';
 import DataTable from './components/DataTable';
 import { fetchSheetData, createRow, updateRow, deleteRow } from './services/api';
 
+const systemColumns = [
+  { key: 'Nombre de la pieza', label: 'Nombre de la Pieza' },
+  { key: 'Cantidad', label: 'Cantidad', type: 'number' },
+  { key: 'Tornilleria Empleada', label: 'Tornillería Empleada', required: false },
+  { key: 'Herramienta Requerida', label: 'Herramienta Requerida', required: false }
+];
+
 const VIEWS = {
-  sistemas: {
-    title: 'Sistemas Principales',
-    sheetName: 'Sistemas Principales', // Exact name in Google Sheets
-    columns: [
-      { key: 'ID_Pieza', label: 'ID Pieza' },
-      { key: 'Sistema', label: 'Sistema' },
-      { key: 'Nombre de la pieza', label: 'Nombre de la pieza' },
-      { key: 'Cantidad', label: 'Cantidad', type: 'number' },
-      { key: 'Tornilleria Empleada', label: 'Tornillería Empleada', required: false },
-      { key: 'Herramienta Requerida', label: 'Herramienta Requerida', required: false }
-    ]
+  suspension: {
+    title: 'Suspensión y Dirección',
+    sheetName: 'Suspension y Direccion',
+    columns: systemColumns
+  },
+  drivetrain: {
+    title: 'Drive Train',
+    sheetName: 'Drive Train',
+    columns: systemColumns
+  },
+  frame: {
+    title: 'Frame',
+    sheetName: 'Frame',
+    columns: systemColumns
+  },
+  electrico: {
+    title: 'Sistema Eléctrico',
+    sheetName: 'Sistema Electrico',
+    columns: systemColumns
+  },
+  frenos: {
+    title: 'Frenos',
+    sheetName: 'Frenos',
+    columns: systemColumns
   },
   inventario: {
     title: 'Inventario General',
@@ -27,7 +47,7 @@ const VIEWS = {
   },
   consumibles: {
     title: 'Consumibles',
-    sheetName: 'Consumibles', // Corregido de Cosumibles a Consumibles
+    sheetName: 'Consumibles',
     columns: [
       { key: 'Nombre', label: 'Nombre' },
       { key: 'Cantidad', label: 'Cantidad', type: 'number' },
@@ -37,7 +57,8 @@ const VIEWS = {
 };
 
 function App() {
-  const [activeTab, setActiveTab] = useState('sistemas');
+  // Ajustamos el estado inicial a 'suspension' en lugar de 'sistemas'
+  const [activeTab, setActiveTab] = useState('suspension');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 

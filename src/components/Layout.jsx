@@ -2,7 +2,11 @@ import { useState } from 'react';
 
 export default function Layout({ children, activeTab, setActiveTab }) {
   const tabs = [
-    { id: 'sistemas', label: 'Sistemas Principales' },
+    { id: 'suspension', label: 'Suspensión y Dirección' },
+    { id: 'drivetrain', label: 'Drive Train' },
+    { id: 'frame', label: 'Frame' },
+    { id: 'electrico', label: 'Sistema Eléctrico' },
+    { id: 'frenos', label: 'Frenos' },
     { id: 'inventario', label: 'Inventario General' },
     { id: 'consumibles', label: 'Consumibles' }
   ];

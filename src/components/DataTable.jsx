@@ -59,7 +59,7 @@ export default function DataTable({
         <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
           <input 
             type="text" 
-            placeholder="Buscar por ID, Nombre..." 
+            placeholder="Buscar por nombre..." 
             className="form-input" 
             style={{ maxWidth: '300px', margin: 0 }}
             value={searchTerm}
