@@ -2,7 +2,7 @@
 export const API_URL = "https://script.google.com/macros/s/AKfycbx5Wl4K89aF0Kxai8EbPZzkqmOfwbOVKte6-9F2mg7dDg8D6U_Zz8lQ6DIwTcpXK2th/exec";
 
 // IMPORTANTE: Esta debe ser exactamente igual a la de tu Google Apps Script
-const API_KEY = "Cabra-Salvaje-777";
+const API_KEY = "CabraSalvaje-777";
 
 export async function fetchSheetData(sheetName) {
   try {
