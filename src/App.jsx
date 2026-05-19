@@ -47,9 +47,18 @@ function App() {
 
   // Attempt Login
   const handleLogin = async (password) => {
-    // Probamos descargar una hoja pequeña para validar la clave
-    await fetchSheetData('Consumibles', password);
-    // Si no falló, la clave es correcta
+    // Probamos descargar la primera hoja que sabemos que existe
+    try {
+      await fetchSheetData('Suspension y Direccion', password);
+    } catch (err) {
+      if (err.message === 'No autorizado') {
+        throw new Error('Contraseña incorrecta');
+      } else if (err.message !== 'Hoja no encontrada') {
+        throw err; // Otros errores de red
+      }
+      // Si dice "Hoja no encontrada", significa que la contraseña era correcta (pasó el filtro) pero la hoja no existe. Lo dejamos pasar.
+    }
+    
     sessionStorage.setItem('apiKey', password);
     setApiKey(password);
   };
@@ -67,8 +76,11 @@ function App() {
       const sheetData = await fetchSheetData(currentView.sheetName, apiKey);
       setData(sheetData);
     } catch (err) {
-      // Si la sesión expiró o la clave es incorrecta repentinamente
-      handleLogout();
+      if (err.message === 'No autorizado') {
+        handleLogout();
+      } else {
+        alert("Error cargando tabla: " + err.message);
+      }
     } finally {
       setLoading(false);
     }
