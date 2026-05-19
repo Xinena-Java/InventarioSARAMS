@@ -1,12 +1,9 @@
 // Reemplaza esta URL con la que obtengas al desplegar tu Google Apps Script
-export const API_URL = "https://script.google.com/macros/s/AKfycbx5Wl4K89aF0Kxai8EbPZzkqmOfwbOVKte6-9F2mg7dDg8D6U_Zz8lQ6DIwTcpXK2th/exec";
+export const API_URL = "https://script.google.com/macros/s/AKfycbygzU6_XsnZR0b1ix9x0NXMCXoc32OuvOg5BMBhLBvMUs6odPh6ySxxxkE4POl29HDppQ/exec";
 
-// IMPORTANTE: Esta debe ser exactamente igual a la de tu Google Apps Script
-const API_KEY = "CabraSalvaje-777";
-
-export async function fetchSheetData(sheetName) {
+export async function fetchSheetData(sheetName, apiKey) {
   try {
-    const url = `${API_URL}?sheet=${encodeURIComponent(sheetName)}&apiKey=${encodeURIComponent(API_KEY)}`;
+    const url = `${API_URL}?sheet=${encodeURIComponent(sheetName)}&apiKey=${encodeURIComponent(apiKey)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("Error en red");
     const json = await res.json();
@@ -14,34 +11,33 @@ export async function fetchSheetData(sheetName) {
     return json.data || [];
   } catch (error) {
     console.error("Error fetching", sheetName, error);
-    alert("Error de conexión o contraseña incorrecta.");
-    return [];
+    throw error; // Lanzamos el error para que App.jsx se entere si falló el login
   }
 }
 
-export async function createRow(sheetName, data) {
-  return sendAction('CREATE', sheetName, data);
+export async function createRow(sheetName, data, apiKey) {
+  return sendAction('CREATE', sheetName, data, null, apiKey);
 }
 
-export async function updateRow(sheetName, _rowIndex, data) {
-  return sendAction('UPDATE', sheetName, data, _rowIndex);
+export async function updateRow(sheetName, _rowIndex, data, apiKey) {
+  return sendAction('UPDATE', sheetName, data, _rowIndex, apiKey);
 }
 
-export async function deleteRow(sheetName, _rowIndex) {
-  return sendAction('DELETE', sheetName, {}, _rowIndex);
+export async function deleteRow(sheetName, _rowIndex, apiKey) {
+  return sendAction('DELETE', sheetName, {}, _rowIndex, apiKey);
 }
 
-async function sendAction(action, sheetName, data, _rowIndex = null) {
+async function sendAction(action, sheetName, data, _rowIndex = null, apiKey) {
   try {
     const payload = {
-      apiKey: API_KEY, // Enviamos la contraseña con cada operación
+      apiKey: apiKey,
       action,
       sheet: sheetName,
       data,
       _rowIndex
     };
 
-    // Usamos text/plain para evitar el preflight OPTIONS de CORS que Google Apps Script rechazaría
+    // Usamos text/plain para evitar el preflight OPTIONS de CORS
     const res = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify(payload),

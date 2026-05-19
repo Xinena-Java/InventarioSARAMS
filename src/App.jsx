@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import DataTable from './components/DataTable';
+import Login from './components/Login';
 import { fetchSheetData, createRow, updateRow, deleteRow } from './services/api';
 
 const systemColumns = [
@@ -11,31 +12,11 @@ const systemColumns = [
 ];
 
 const VIEWS = {
-  suspension: {
-    title: 'Suspensión y Dirección',
-    sheetName: 'Suspension y Direccion',
-    columns: systemColumns
-  },
-  drivetrain: {
-    title: 'DriveTrain',
-    sheetName: 'DriveTrain',
-    columns: systemColumns
-  },
-  frame: {
-    title: 'Frame',
-    sheetName: 'Frame',
-    columns: systemColumns
-  },
-  electrico: {
-    title: 'Sistema Eléctrico',
-    sheetName: 'Sistema Electrico',
-    columns: systemColumns
-  },
-  frenos: {
-    title: 'Frenos',
-    sheetName: 'Frenos',
-    columns: systemColumns
-  },
+  suspension: { title: 'Suspensión y Dirección', sheetName: 'Suspension y Direccion', columns: systemColumns },
+  drivetrain: { title: 'Drive Train', sheetName: 'Drive Train', columns: systemColumns },
+  frame: { title: 'Frame', sheetName: 'Frame', columns: systemColumns },
+  electrico: { title: 'Sistema Eléctrico', sheetName: 'Sistema Electrico', columns: systemColumns },
+  frenos: { title: 'Frenos', sheetName: 'Frenos', columns: systemColumns },
   inventario: {
     title: 'Inventario General',
     sheetName: 'Inventario General',
@@ -57,32 +38,52 @@ const VIEWS = {
 };
 
 function App() {
-  // Ajustamos el estado inicial a 'suspension' en lugar de 'sistemas'
+  const [apiKey, setApiKey] = useState(sessionStorage.getItem('apiKey') || null);
   const [activeTab, setActiveTab] = useState('suspension');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const currentView = VIEWS[activeTab];
 
+  // Attempt Login
+  const handleLogin = async (password) => {
+    // Probamos descargar una hoja pequeña para validar la clave
+    await fetchSheetData('Consumibles', password);
+    // Si no falló, la clave es correcta
+    sessionStorage.setItem('apiKey', password);
+    setApiKey(password);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('apiKey');
+    setApiKey(null);
+    setData([]);
+  };
+
   const loadData = async () => {
+    if (!apiKey) return;
     setLoading(true);
-    const sheetData = await fetchSheetData(currentView.sheetName);
-    setData(sheetData);
-    setLoading(false);
+    try {
+      const sheetData = await fetchSheetData(currentView.sheetName, apiKey);
+      setData(sheetData);
+    } catch (err) {
+      // Si la sesión expiró o la clave es incorrecta repentinamente
+      handleLogout();
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, [activeTab, apiKey]);
 
   const handleSave = async (formData, rowIndex) => {
     setLoading(true);
     if (rowIndex) {
-      // Editar
-      await updateRow(currentView.sheetName, rowIndex, formData);
+      await updateRow(currentView.sheetName, rowIndex, formData, apiKey);
     } else {
-      // Crear
-      await createRow(currentView.sheetName, formData);
+      await createRow(currentView.sheetName, formData, apiKey);
     }
     await loadData();
   };
@@ -90,13 +91,18 @@ function App() {
   const handleDelete = async (rowIndex) => {
     if(window.confirm('¿Estás seguro de eliminar este registro?')) {
       setLoading(true);
-      await deleteRow(currentView.sheetName, rowIndex);
+      await deleteRow(currentView.sheetName, rowIndex, apiKey);
       await loadData();
     }
   };
 
+  // Render Login if no valid API key
+  if (!apiKey) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout}>
       <DataTable 
         title={currentView.title}
         columns={currentView.columns}
