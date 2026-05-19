@@ -13,7 +13,7 @@ const systemColumns = [
 
 const VIEWS = {
   suspension: { title: 'Suspensión y Dirección', sheetName: 'Suspension y Direccion', columns: systemColumns },
-  drivetrain: { title: 'Drive Train', sheetName: 'Drive Train', columns: systemColumns },
+  drivetrain: { title: 'DriveTrain', sheetName: 'DriveTrain', columns: systemColumns },
   frame: { title: 'Frame', sheetName: 'Frame', columns: systemColumns },
   electrico: { title: 'Sistema Eléctrico', sheetName: 'Sistema Electrico', columns: systemColumns },
   frenos: { title: 'Frenos', sheetName: 'Frenos', columns: systemColumns },
