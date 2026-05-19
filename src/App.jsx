@@ -17,8 +17,8 @@ const VIEWS = {
     columns: systemColumns
   },
   drivetrain: {
-    title: 'Drive Train',
-    sheetName: 'Drive Train',
+    title: 'DriveTrain',
+    sheetName: 'DriveTrain',
     columns: systemColumns
   },
   frame: {
