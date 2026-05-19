@@ -1,8 +1,8 @@
 // Reemplaza esta URL con la que obtengas al desplegar tu Google Apps Script
-export const API_URL = "https://script.google.com/macros/s/AKfycbygzU6_XsnZR0b1ix9x0NXMCXoc32OuvOg5BMBhLBvMUs6odPh6ySxxxkE4POl29HDppQ/exec";
+export const API_URL = "https://script.google.com/macros/s/AKfycbx5Wl4K89aF0Kxai8EbPZzkqmOfwbOVKte6-9F2mg7dDg8D6U_Zz8lQ6DIwTcpXK2th/exec";
 
 // IMPORTANTE: Esta debe ser exactamente igual a la de tu Google Apps Script
-const API_KEY = "MiContraseñaSecretaDIY2024";
+const API_KEY = "Cabra-Salvaje-777";
 
 export async function fetchSheetData(sheetName) {
   try {
