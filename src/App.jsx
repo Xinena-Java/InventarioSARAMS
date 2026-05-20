@@ -5,6 +5,9 @@ import ChecklistCompetencia from './components/ChecklistCompetencia';
 import Login from './components/Login';
 import { useInventoryController } from './controllers/useInventoryController';
 
+// Contraseña del sistema - CAMBIAR A UNA SEGURA
+const CORRECT_PASSWORD = import.meta.env.VITE_APP_PASSWORD || 'CabraSalvaje-777';
+
 const systemColumns = [
   { key: 'Nombre', label: 'Nombre' },
   { key: 'Observaciones', label: 'Observaciones', required: false }
@@ -57,8 +60,10 @@ function App() {
 
   // Attempt Login
   const handleLogin = async (password) => {
-    // Si estuviéramos conectando a una API REST, validaríamos aquí.
-    // Como estamos en GAS interno, podemos simplemente aceptar o validar hardcodeado.
+    // Validar que la contraseña sea correcta
+    if (password !== CORRECT_PASSWORD) {
+      throw new Error('Contraseña incorrecta');
+    }
     sessionStorage.setItem('apiKey', password);
     setApiKey(password);
   };
