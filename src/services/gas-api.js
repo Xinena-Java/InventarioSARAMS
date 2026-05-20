@@ -4,7 +4,13 @@ const API_URL = "https://script.google.com/macros/s/AKfycbw1_V7iqtND5aHBJLZPBRh2
 export const gasAPI = {
   obtenerBaseDeDatosInicial: async () => {
     try {
-      const res = await fetch(API_URL);
+      // El timestamp evita que Google Apps Script cachee la respuesta del GET
+      const res = await fetch(`${API_URL}?t=${Date.now()}`, { 
+        cache: 'no-store',
+        headers: {
+          'Accept-Encoding': 'gzip, deflate'
+        }
+      });
       if (!res.ok) throw new Error("Error de red");
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -36,6 +42,31 @@ export const gasAPI = {
       return json;
     } catch (error) {
       console.error("Error saving:", error);
+      throw error;
+    }
+  },
+
+  actualizarComponente: async (componenteData, requisitosArray) => {
+    try {
+      const payload = {
+        action: 'actualizarComponente',
+        componenteData,
+        requisitosArray
+      };
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        }
+      });
+
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json;
+    } catch (error) {
+      console.error("Error updating component:", error);
       throw error;
     }
   },

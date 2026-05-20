@@ -19,18 +19,49 @@ export default function DataTable({
   // Listas dinámicas de requisitos
   const [tornilleriaRows, setTornilleriaRows] = useState([{ id: '', cant: '' }]);
   const [herramientaRows, setHerramientaRows] = useState([{ id: '', cant: '' }]);
+  const [consumibleRows, setConsumibleRows] = useState([{ id: '', cant: '' }]);
 
   const handleOpenModal = (row = null) => {
     if (row) {
       setFormData(row);
       setEditRowIndex(row.Id_Componente || row.Id_Item);
+      
+      // Si es un componente con requisitos existentes, cargarlos en los arrays
+      if (row.requisitos && row.requisitos.length > 0) {
+        const newTornilleria = [];
+        const newHerramientas = [];
+        const newConsumibles = [];
+        
+        for (const req of row.requisitos) {
+          const item = inventarioMaestro.find(i => String(i.Id_Item) === String(req.Id_Item));
+          const reqData = { id: req.Id_Item, cant: req.Cantidad_Necesaria };
+          
+          if (item?.Tipo === 'Tornillería') {
+            newTornilleria.push(reqData);
+          } else if (item?.Tipo === 'Herramienta') {
+            newHerramientas.push(reqData);
+          } else {
+            newConsumibles.push(reqData);
+          }
+        }
+        
+        setTornilleriaRows(newTornilleria.length > 0 ? newTornilleria : [{ id: '', cant: '' }]);
+        setHerramientaRows(newHerramientas.length > 0 ? newHerramientas : [{ id: '', cant: '' }]);
+        setConsumibleRows(newConsumibles.length > 0 ? newConsumibles : [{ id: '', cant: '' }]);
+      } else {
+        // Sin requisitos, inicializar vacío
+        setTornilleriaRows([{ id: '', cant: '' }]);
+        setHerramientaRows([{ id: '', cant: '' }]);
+        setConsumibleRows([{ id: '', cant: '' }]);
+      }
     } else {
       setFormData({});
       setEditRowIndex(null);
+      // Reiniciar listas dinámicas al crear nuevo
+      setTornilleriaRows([{ id: '', cant: '' }]);
+      setHerramientaRows([{ id: '', cant: '' }]);
+      setConsumibleRows([{ id: '', cant: '' }]);
     }
-    // Reiniciar listas dinámicas al abrir
-    setTornilleriaRows([{ id: '', cant: '' }]);
-    setHerramientaRows([{ id: '', cant: '' }]);
     setIsModalOpen(true);
   };
   
@@ -40,11 +71,14 @@ export default function DataTable({
     setEditRowIndex(null);
     setTornilleriaRows([{ id: '', cant: '' }]);
     setHerramientaRows([{ id: '', cant: '' }]);
+    setConsumibleRows([{ id: '', cant: '' }]);
   };
   
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    // Convertir a mayúsculas solo campos de texto
+    const finalValue = type === 'text' ? value.toUpperCase() : value;
+    setFormData(prev => ({ ...prev, [name]: finalValue }));
   };
 
   // --- Funciones para listas dinámicas de Tornillería ---
@@ -69,6 +103,17 @@ export default function DataTable({
   const addHerramientaRow = () => setHerramientaRows(prev => [...prev, { id: '', cant: '' }]);
   const removeHerramientaRow = (index) => setHerramientaRows(prev => prev.filter((_, i) => i !== index));
 
+  // --- Funciones para listas dinámicas de Consumibles ---
+  const handleConsumibleChange = (index, field, value) => {
+    setConsumibleRows(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+  const addConsumibleRow = () => setConsumibleRows(prev => [...prev, { id: '', cant: '' }]);
+  const removeConsumibleRow = (index) => setConsumibleRows(prev => prev.filter((_, i) => i !== index));
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // Empacar las listas de requisitos dentro de formData
@@ -76,6 +121,7 @@ export default function DataTable({
       ...formData,
       requisitosTornilleria: tornilleriaRows.filter(r => r.id),
       requisitosHerramientas: herramientaRows.filter(r => r.id),
+      requisitosConsumibles: consumibleRows.filter(r => r.id),
     };
     onSave(dataWithRequisitos, editRowIndex);
     handleCloseModal();
@@ -101,6 +147,7 @@ export default function DataTable({
 
   const herramientas = inventarioMaestro.filter(i => i.Tipo === 'Herramienta');
   const tornilleria = inventarioMaestro.filter(i => i.Tipo === 'Tornillería');
+  const consumibles = inventarioMaestro.filter(i => i.Tipo !== 'Herramienta' && i.Tipo !== 'Tornillería');
 
   return (
     <div className="data-panel">
@@ -219,7 +266,7 @@ export default function DataTable({
               ))}
 
               {/* Sección de Requisitos Dinámicos — solo en vistas de Componentes */}
-              {isComponentView && !editRowIndex && (
+              {isComponentView && (
                 <>
                   <hr style={{margin: '1.5rem 0', borderColor: 'var(--border)'}} />
                   <h4 style={{ color: 'var(--text-bright)', marginBottom: '1rem' }}>Requisitos del Componente</h4>
@@ -265,7 +312,7 @@ export default function DataTable({
                   </div>
 
                   {/* ---- Sección Herramientas ---- */}
-                  <div>
+                  <div style={{ marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <label className="form-label" style={{ margin: 0 }}>Herramientas Requeridas</label>
                       <button type="button" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={addHerramientaRow}>
@@ -296,6 +343,46 @@ export default function DataTable({
                         />
                         {herramientaRows.length > 1 && (
                           <button type="button" onClick={() => removeHerramientaRow(index)}
+                            style={{ background: 'var(--danger, #e53e3e)', border: 'none', color: 'white', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold', flexShrink: 0 }}>
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ---- Sección Consumibles ---- */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <label className="form-label" style={{ margin: 0 }}>Consumibles Requeridos</label>
+                      <button type="button" className="btn btn-secondary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={addConsumibleRow}>
+                        + Añadir Consumible
+                      </button>
+                    </div>
+                    {consumibleRows.map((row, index) => (
+                      <div key={index} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                        <select
+                          className="form-input"
+                          style={{ flex: 1, margin: 0 }}
+                          value={row.id}
+                          onChange={(e) => handleConsumibleChange(index, 'id', e.target.value)}
+                        >
+                          <option value="">-- Seleccionar --</option>
+                          {consumibles.map(c => (
+                            <option key={c.Id_Item} value={c.Id_Item}>{c.Descripcion} ({c.Categoria})</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          className="form-input"
+                          placeholder="Cant."
+                          style={{ width: '75px', margin: 0 }}
+                          value={row.cant}
+                          min="1"
+                          onChange={(e) => handleConsumibleChange(index, 'cant', e.target.value)}
+                        />
+                        {consumibleRows.length > 1 && (
+                          <button type="button" onClick={() => removeConsumibleRow(index)}
                             style={{ background: 'var(--danger, #e53e3e)', border: 'none', color: 'white', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold', flexShrink: 0 }}>
                             ×
                           </button>

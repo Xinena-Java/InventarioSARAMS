@@ -42,6 +42,12 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify(res))
         .setMimeType(ContentService.MimeType.JSON);
     }
+
+    if (body.action === 'actualizarComponente') {
+      const res = actualizarComponente(body.componenteData, body.requisitosArray);
+      return ContentService.createTextOutput(JSON.stringify(res))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     throw new Error("Acción no reconocida");
   } catch (error) {
@@ -152,6 +158,73 @@ function guardarComponenteCompleto(componenteData, requisitosArray) {
       let resReq = crearRegistro("Requisitos_Componente", req);
       if(!resReq.success) throw new Error(resReq.error);
     }
+    return { success: true };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function actualizarComponente(componenteData, requisitosArray) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    const idComponente = componenteData.Id_Componente;
+    if (!idComponente) throw new Error("Id_Componente es requerido para actualizar");
+    
+    // 1. Actualizar el componente en la tabla Componentes
+    const compSheet = ss.getSheetByName('Componentes');
+    if (!compSheet) throw new Error("Tabla 'Componentes' no encontrada");
+    
+    const compData = compSheet.getDataRange().getValues();
+    const compHeaders = compData[0];
+    let updated = false;
+    
+    for (let i = 1; i < compData.length; i++) {
+      if (String(compData[i][compHeaders.indexOf('Id_Componente')]) === String(idComponente)) {
+        // Actualizar fila
+        for (let j = 0; j < compHeaders.length; j++) {
+          const header = compHeaders[j];
+          if (componenteData[header] !== undefined) {
+            compSheet.getRange(i + 1, j + 1).setValue(componenteData[header]);
+          }
+        }
+        updated = true;
+        break;
+      }
+    }
+    
+    if (!updated) throw new Error("Componente no encontrado para actualizar");
+    
+    // 2. Eliminar requisitos antiguos asociados a este componente
+    const reqSheet = ss.getSheetByName('Requisitos_Componente');
+    if (reqSheet) {
+      const reqData = reqSheet.getDataRange().getValues();
+      if (reqData.length > 1) {
+        const idCompIndex = reqData[0].indexOf('Id_Componente');
+        if (idCompIndex > -1) {
+          // Borrar de abajo hacia arriba para no alterar índices
+          for (let i = reqData.length - 1; i >= 1; i--) {
+            if (String(reqData[i][idCompIndex]) === String(idComponente)) {
+              reqSheet.deleteRow(i + 1);
+            }
+          }
+        }
+      }
+    }
+    
+    // 3. Agregar nuevos requisitos
+    for (let req of requisitosArray) {
+      if (req.Id_Item) { // Solo agregar si tiene Id_Item
+        req["Id_Componente"] = idComponente;
+        let resReq = crearRegistro("Requisitos_Componente", req);
+        if(!resReq.success) throw new Error(resReq.error);
+      }
+    }
+    
     return { success: true };
   } catch(e) {
     return { success: false, error: e.toString() };

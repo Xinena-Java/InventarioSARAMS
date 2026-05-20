@@ -227,6 +227,25 @@ tr:hover {
   color: var(--text-bright);
   font-family: var(--font-family);
   transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+/* Excepción: los selectores y campos numéricos no van en mayúsculas */
+.form-input[type="number"],
+.form-input[type="password"],
+select.form-input {
+  text-transform: none;
+}
+
+/* Estilos para las opciones del select */
+select.form-input option {
+  background-color: var(--bg-main);
+  color: var(--text-bright);
+}
+
+select.form-input option:checked {
+  background-color: var(--accent);
+  color: #000;
 }
 
 .form-input:focus {

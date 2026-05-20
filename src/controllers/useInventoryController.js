@@ -5,43 +5,23 @@ export function useInventoryController(activeTab) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [inventarioMaestro, setInventarioMaestro] = useState([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
+  // Cargar datos solo una vez al montar el componente
   useEffect(() => {
     let isMounted = true;
 
-    const loadData = async () => {
+    const loadInitialData = async () => {
       setLoading(true);
       try {
-        // Carga inicial (solo hace fetch si el DAO está vacío, o fuerza recarga)
-        if (!inventoryDAO.db) {
+        // Carga inicial: cargar del DAO (que hará caching)
+        if (!inventoryDAO.isLoaded) {
           await inventoryDAO.loadInitialData();
         }
         
         if (!isMounted) return;
-
+        setDataLoaded(true);
         setInventarioMaestro(inventoryDAO.getInventarioMaestro());
-
-        // Filtrar según la pestaña activa
-        if (activeTab === 'herramientas') {
-          setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Herramienta'));
-        } else if (activeTab === 'tornilleria') {
-          setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Tornillería'));
-        } else if (activeTab === 'consumibles') {
-          setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo !== 'Herramienta' && i.Tipo !== 'Tornillería'));
-        } else {
-          // Es un sistema (frenos, suspension, etc.)
-          // Mapeamos el ID de la pestaña al nombre real del sistema
-          const sistemasMap = {
-            suspension: 'Suspensión y Dirección',
-            drivetrain: 'DriveTrain',
-            frame: 'Frame',
-            electrico: 'Sistema Eléctrico',
-            frenos: 'Frenos'
-          };
-          const sistema = sistemasMap[activeTab] || activeTab;
-          setData(inventoryDAO.getComponentesPorSistema(sistema));
-        }
-
       } catch (err) {
         console.error("Error cargando DB:", err);
         alert("Error cargando DB: " + err.message);
@@ -50,12 +30,39 @@ export function useInventoryController(activeTab) {
       }
     };
 
-    loadData();
+    loadInitialData();
 
     return () => {
       isMounted = false;
     };
-  }, [activeTab]);
+  }, []); // Vacío: solo corre al montar
+
+  // Filtrar y actualizar vista según la pestaña activa (sin recargar datos)
+  useEffect(() => {
+    if (!dataLoaded) return;
+
+    const filterAndSetData = () => {
+      if (activeTab === 'herramientas') {
+        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Herramienta'));
+      } else if (activeTab === 'tornilleria') {
+        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Tornillería'));
+      } else if (activeTab === 'consumibles') {
+        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo !== 'Herramienta' && i.Tipo !== 'Tornillería'));
+      } else {
+        const sistemasMap = {
+          suspension: 'Suspensión y Dirección',
+          drivetrain: 'DriveTrain',
+          frame: 'Frame',
+          electrico: 'Sistema Eléctrico',
+          frenos: 'Frenos'
+        };
+        const sistema = sistemasMap[activeTab] || activeTab;
+        setData(inventoryDAO.getComponentesPorSistema(sistema));
+      }
+    };
+
+    filterAndSetData();
+  }, [activeTab, dataLoaded]); // Solo corre cuando cambia activeTab o cuando se cargan datos
 
   const handleSave = async (formData, editRowIndex) => {
     setLoading(true);
@@ -78,10 +85,19 @@ export function useInventoryController(activeTab) {
 
         await inventoryDAO.guardarRegistro('Inventario_Maestro', recordData);
       } else {
+        const sistemasMap = {
+          suspension: 'Suspensión y Dirección',
+          drivetrain: 'DriveTrain',
+          frame: 'Frame',
+          electrico: 'Sistema Eléctrico',
+          frenos: 'Frenos'
+        };
+        const sistemaNombre = sistemasMap[activeTab] || activeTab;
+
         const componente = {
           Id_Componente: editRowIndex || "",
           Nombre: formData.Nombre,
-          Sistema: formData.Sistema || activeTab,
+          Sistema: sistemaNombre,
           Observaciones: formData.Observaciones || ""
         };
 
@@ -105,18 +121,37 @@ export function useInventoryController(activeTab) {
           });
         }
 
-        await inventoryDAO.guardarComponente(componente, requisitos);
+        // Consumibles: recorrer la lista dinámica
+        if (formData.requisitosConsumibles) {
+          formData.requisitosConsumibles.forEach(r => {
+            if (r.id && r.cant) {
+              requisitos.push({ Id_Item: r.id, Cantidad_Necesaria: r.cant });
+            }
+          });
+        }
+
+        // Decidir si crear o actualizar
+        if (editRowIndex) {
+          // Actualizar componente existente
+          await inventoryDAO.actualizarComponente(componente, requisitos);
+        } else {
+          // Crear nuevo componente
+          await inventoryDAO.guardarComponente(componente, requisitos);
+        }
       }
       
-      // Refrescar data
-      setInventarioMaestro(inventoryDAO.getInventarioMaestro());
-      const sistemaActual = activeTab;
-      if (sistemaActual === 'herramientas') {
-        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Herramienta'));
-      } else if (sistemaActual === 'tornilleria') {
-        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Tornillería'));
-      } else if (sistemaActual === 'consumibles') {
-        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo !== 'Herramienta' && i.Tipo !== 'Tornillería'));
+      // Recargar datos después de guardar
+      await inventoryDAO.loadInitialData();
+      const newInventario = inventoryDAO.getInventarioMaestro();
+      setInventarioMaestro(newInventario);
+      
+      // Filtrar según la pestaña activa
+      if (activeTab === 'herramientas') {
+        setData(newInventario.filter(i => i.Tipo === 'Herramienta'));
+      } else if (activeTab === 'tornilleria') {
+        setData(newInventario.filter(i => i.Tipo === 'Tornillería'));
+      } else if (activeTab === 'consumibles') {
+        setData(newInventario.filter(i => i.Tipo !== 'Herramienta' && i.Tipo !== 'Tornillería'));
       } else {
         const sistemasMap = {
           suspension: 'Suspensión y Dirección',
@@ -125,7 +160,7 @@ export function useInventoryController(activeTab) {
           electrico: 'Sistema Eléctrico',
           frenos: 'Frenos'
         };
-        const sistema = sistemasMap[sistemaActual] || sistemaActual;
+        const sistema = sistemasMap[activeTab] || activeTab;
         setData(inventoryDAO.getComponentesPorSistema(sistema));
       }
     } catch(err) {
@@ -155,16 +190,18 @@ export function useInventoryController(activeTab) {
 
       await inventoryDAO.eliminarRegistro(tabla, idColName, id);
       
-      // Refrescar data
-      setInventarioMaestro(inventoryDAO.getInventarioMaestro());
-      const sistemaActual = activeTab;
+      // Recargar datos después de eliminar
+      await inventoryDAO.loadInitialData();
+      const newInventario = inventoryDAO.getInventarioMaestro();
+      setInventarioMaestro(newInventario);
       
-      if (sistemaActual === 'herramientas') {
-        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Herramienta'));
-      } else if (sistemaActual === 'tornilleria') {
-        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo === 'Tornillería'));
-      } else if (sistemaActual === 'consumibles') {
-        setData(inventoryDAO.getInventarioMaestro().filter(i => i.Tipo !== 'Herramienta' && i.Tipo !== 'Tornillería'));
+      // Filtrar según la pestaña activa
+      if (activeTab === 'herramientas') {
+        setData(newInventario.filter(i => i.Tipo === 'Herramienta'));
+      } else if (activeTab === 'tornilleria') {
+        setData(newInventario.filter(i => i.Tipo === 'Tornillería'));
+      } else if (activeTab === 'consumibles') {
+        setData(newInventario.filter(i => i.Tipo !== 'Herramienta' && i.Tipo !== 'Tornillería'));
       } else {
         const sistemasMap = {
           suspension: 'Suspensión y Dirección',
@@ -173,7 +210,7 @@ export function useInventoryController(activeTab) {
           electrico: 'Sistema Eléctrico',
           frenos: 'Frenos'
         };
-        const sistema = sistemasMap[sistemaActual] || sistemaActual;
+        const sistema = sistemasMap[activeTab] || activeTab;
         setData(inventoryDAO.getComponentesPorSistema(sistema));
       }
     } catch(err) {
