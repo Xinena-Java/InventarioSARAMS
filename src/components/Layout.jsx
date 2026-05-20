@@ -5,7 +5,9 @@ export default function Layout({ children, activeTab, setActiveTab, onLogout }) 
     { id: 'frame', label: 'Frame' },
     { id: 'electrico', label: 'Sistema Eléctrico' },
     { id: 'frenos', label: 'Frenos' },
-    { id: 'inventario', label: 'Inventario General' },
+    { id: 'checklist', label: 'Checklist Competición' },
+    { id: 'herramientas', label: 'Herramientas' },
+    { id: 'tornilleria', label: 'Tornillería' },
     { id: 'consumibles', label: 'Consumibles' }
   ];
 
@@ -13,7 +15,7 @@ export default function Layout({ children, activeTab, setActiveTab, onLogout }) 
     <div className="app-container">
       <aside className="sidebar">
         <div>
-          <h1 className="sidebar-title">Inventario Baja SAE</h1>
+          <h1 className="sidebar-title">Inventario SARAMS</h1>
           <nav>
             {tabs.map(tab => (
               <div 

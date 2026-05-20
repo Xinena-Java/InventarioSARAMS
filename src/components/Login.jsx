@@ -30,7 +30,7 @@ export default function Login({ onLogin }) {
       <div className="data-panel" style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
         <h2 style={{ color: 'var(--text-bright)', marginBottom: '1.5rem' }}>Acceso Requerido</h2>
         <p style={{ color: 'var(--text-main)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-          Ingresa la clave secreta para acceder al inventario de Baja SAE.
+          Ingresa la clave secreta para acceder al inventario de SARAMS.
         </p>
         
         <form onSubmit={handleSubmit}>
